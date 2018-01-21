@@ -1,0 +1,12 @@
+extension = "newrelic.so"
+
+[newrelic]
+newrelic.license = "%%NEW_RELIC_LICENSE_KEY%%"
+newrelic.appname = "%%NEW_RELIC_APP_NAME%%"
+newrelic.labels = "%%NEW_RELIC_LABELS%%"
+
+newrelic.logfile = "/proc/self/fd/2"
+newrelic.loglevel = "error"
+
+newrelic.daemon.port = "/var/run/newrelic.sock"
+newrelic.daemon.dont_launch = 3

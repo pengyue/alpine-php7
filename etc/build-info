@@ -1,0 +1,35 @@
+#!/bin/sh
+
+LOGFILE=/var/log/build-info.log
+
+REPO_NAME=$2
+
+# Append build information to a logfile
+if [ "$1" = "record" ] ; then
+	# Currently only recording date, the rest are on Quay.io's roadmap
+	BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+	BUILD_NO="buildid"
+	COMMIT_HASH="gitsha1"
+
+	echo "$REPO_NAME,$COMMIT_HASH,$BUILD_DATE,$BUILD_NO" >>${LOGFILE}
+fi
+
+if ! [ -f $LOGFILE ] ; then
+	echo "Could not open $LOGFILE"
+else
+	# Parse build info logfile and display all parent images data
+	cat $LOGFILE | while read -r LINE ; do
+		REPO_NAME=$(echo "$LINE" | cut -f1 -d,)
+		COMMIT_HASH=$(echo "$LINE" | cut -f2 -d,)
+		BUILD_DATE=$(echo "$LINE" | cut -f3 -d,)
+		BUILD_NO=$(echo "$LINE" | cut -f4 -d,)
+
+		printf '%s %s %s %s\n' "$BUILD_DATE" "$BUILD_NO" "$COMMIT_HASH" "$REPO_NAME"
+	done
+
+	# Export the current images data
+	REPO_NAME=$(tail -1 $LOGFILE | cut -f1 -d,) ; export REPO_NAME
+	COMMIT_HASH=$(tail -1 $LOGFILE | cut -f2 -d,) ; export COMMIT_HASH
+	BUILD_DATE=$(tail -1 $LOGFILE | cut -f3 -d,) ; export BUILD_DATE
+	BUILD_NO=$(tail -1 $LOGFILE | cut -f4 -d,) ; export BUILD_NO
+fi

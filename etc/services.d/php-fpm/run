@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "init[services]: Starting 'php-fpm' as user 'root'"
+php-fpm

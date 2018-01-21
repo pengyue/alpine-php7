@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# If a New Relic license was specified, enable New Relic
+if ! [ -z "$NEW_RELIC_LICENSE_KEY" ] ; then
+	echo "${NEW_RELIC_LICENSE_KEY} ${NEW_RELIC_APP_NAME:-alpine-base-php7}"
+	sed	-e "s/%%NEW_RELIC_LICENSE_KEY%%/${NEW_RELIC_LICENSE_KEY}/" \
+		-e "s/%%NEW_RELIC_LABELS%%/${NEW_RELIC_LABELS}/" \
+		-e "s/%%NEW_RELIC_APP_NAME%%/${NEW_RELIC_APP_NAME:-alpine-base-php7}/" \
+		/etc/php7/conf.d/newrelic.ini-template >/etc/php7/conf.d/newrelic.ini
+	/etc/add-service newrelic-daemon root "newrelic-daemon --logfile /proc/self/fd/2 --loglevel error --pidfile /var/run/newrelic.pid --port /var/run/newrelic.sock --foreground"
+fi

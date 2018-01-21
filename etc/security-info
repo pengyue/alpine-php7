@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# delay scan a few seconds
+sleep 5
+
+LOGFILE=/var/log/security-info.log
+
+if ! [ -e /app/composer.lock ] ; then
+	echo "[CVE-SKIP] Known vulnerabilities scan skipped (missing composer.lock)" >"${LOGFILE}" 2>&1
+	ERR=255
+else
+	security-checker security:check --format simple --no-ansi >"${LOGFILE}" 2>&1
+	ERR=$?
+fi
+
+if [ "${ERR}" = 0 ] ; then
+	echo "[CVE-PASS] Known vulnerabilities not found"
+else
+	echo "[CVE-FAIL] Known vulnerabilities found"
+	sed -e "/Security Check Report: \/app\/composer.lock/d;s/^//" "${LOGFILE}"
+fi
+
+exit "${ERR:-0}"

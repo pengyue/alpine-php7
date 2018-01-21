@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# import & display build info
+/etc/build-info 2>&1 | sed -e "s/^/init[build-id]: /"
+
+set -e
+
+if [ -z "$1" ] ; then
+
+	# run security checks in the background & display info
+	/etc/security-info 2>&1 | sed -e "s/^/init[security]: /" &
+
+	# run rc scripts
+	/etc/rc.newrelic 2>&1 | sed -e "s/^/init[newrelic]: /"
+	/etc/rc.local 2>&1 | sed -e "s/^/init[rc.local]: /"
+
+	# setup a socket fo capture php error_log
+	mkfifo -m a=rw /var/run/php-error.sock
+
+	# no command was specified, normal startup
+	exec s6-svscan -t0 /etc/services.d
+
+elif [ "$1" = "/bin/sh" ] || [ "$1" = "sh" ] || [ "$1" = "/bin/bash" ] || [ "$1" = "bash" ] ; then
+
+	# command specifed was a shell, run as root
+	echo "init[services]: Starting '$@' as user 'root'"
+	exec "$@"
+
+else
+
+	# command specified was not a shell, run as www
+	echo "init[services]: Starting '$@' as user 'www'"
+	exec s6-setuidgid www "$@"
+
+fi

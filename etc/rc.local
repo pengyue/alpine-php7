@@ -1,0 +1,3 @@
+#!/bin/sh
+
+# Descendant images may overwrite this to run initialisation tasks at startup

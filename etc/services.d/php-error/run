@@ -1,0 +1,4 @@
+#!/bin/execlineb -P
+socat
+open:/var/run/php-error.sock
+stdout

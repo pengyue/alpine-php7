@@ -1,0 +1,2 @@
+#!/bin/execlineb -P
+echo "init[shutdown]: Terminating container"
