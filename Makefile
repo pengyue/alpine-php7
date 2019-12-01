@@ -15,7 +15,7 @@ shell:
 	docker run -P --rm -it --name ${NAME} ${BASE}/${NAME}:local /bin/sh
 
 run:
-	docker run -P --rm --name ${NAME} ${BASE}/${NAME}:local
+	docker run -P --rm --name ${NAME} -d ${BASE}/${NAME}:local
 
 clean:
 	docker rmi ${BASE}/${NAME}:local

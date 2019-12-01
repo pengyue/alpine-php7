@@ -1,9 +1,11 @@
-FROM alpine:3.6
+FROM composer:latest AS composer
+FROM alpine:3.9
 
-MAINTAINER Peng Yue <penyue@gmail.com>
+LABEL Maintainer="Peng Yue <penyue@gmail.com>" \
+      Description="Lightweight container with Nginx 1.14 & PHP-FPM 7.2 based on Alpine Linux."
 
 # Used only to force cache invalidation
-ARG CACHE_BUSTER=2017-08-18-A
+ARG CACHE_BUSTER=2019-12-01-A
 
 # Setup a simple and informative shell prompt
 ENV PS1='\u@\h.${POD_NAMESPACE}:/\W \$ '
@@ -12,10 +14,15 @@ ENV PS1='\u@\h.${POD_NAMESPACE}:/\W \$ '
 RUN addgroup -g 9998 -S build && adduser -u 9998 -G build -S build && \
  addgroup -g 9999 -S www && adduser -u 9999 -G www -S www -H
 
+# Install composer
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+
+RUN echo "https://dl.bintray.com/php-alpine/v3.9/php-7.3" >> /etc/apk/repositories
+
 # Install required packages
-RUN apk upgrade --no-cache && \
- apk add --no-cache s6 bind-tools libcap ca-certificates openssl openssh bash git socat strace jq nano curl rsync mysql-client \
- nginx \
+RUN apk update --no-cache && \
+ apk add --no-cache curl ca-certificates openrc s6 bind-tools libcap openssl openssh bash git socat strace jq vim rsync mysql-client nginx \
+ --update php7 \
  php7-bcmath \
  php7-bz2 \
  php7-calendar \
@@ -55,8 +62,10 @@ RUN apk upgrade --no-cache && \
  php7-xsl \
  php7-zip \
  php7-zlib && \
+# apk add --update php-common@php && \
+ ln -s /usr/sbin/php-fpm7 /usr/sbin/php-fpm && \
  rm -rf /etc/php7/conf.d/xdebug.ini && \
- ln -s /usr/sbin/php-fpm7 /usr/sbin/php-fpm
+ rm -rf /var/cache/apk/*
 
 # Install New Relic
 RUN PHP_EXTENSION=`php -i | grep "PHP Extension => " | cut -f4 -d' '` && \
@@ -67,20 +76,23 @@ RUN PHP_EXTENSION=`php -i | grep "PHP Extension => " | cut -f4 -d' '` && \
  mv /$NR_VERSION/daemon/newrelic-daemon.x64 /usr/bin/newrelic-daemon && chown root:root /usr/bin/newrelic-daemon && \
  rm -rf /$NR_VERSION
 
-# Install composer
-RUN wget -qO /usr/local/bin/composer https://getcomposer.org/download/1.4.2/composer.phar && chmod +x /usr/local/bin/composer
-
 # Install security checker
 RUN wget -qO /usr/local/bin/security-checker http://get.sensiolabs.org/security-checker.phar && chmod +x /usr/local/bin/security-checker
 
+RUN rc-update add s6 default
+
 # Add config files and fix permissions
 COPY etc /etc/
-COPY ssh /home/build/.ssh/
-RUN chown -R build:build /home/build/ && chmod 0600 /home/build/.ssh/id_rsa && chmod go-w /etc/shells && rm -rf /var/www && chown -R root:root /var/lib/nginx /usr/sbin/nginx
+RUN chown -R build:build /home/build/ && \
+    chmod go-w /etc/shells && \
+    rm -rf /var/www && \
+    chown -R root:root /var/lib/nginx /usr/sbin/nginx
 
 # Install composer parallel install plugin
 USER build
-RUN composer global require "hirak/prestissimo:^0.3" --no-interaction --no-ansi --quiet --no-progress --prefer-dist && composer clear-cache --no-ansi --quiet && chmod -R go-w ~/.composer/vendor/
+RUN composer global require "hirak/prestissimo:^0.3" --no-interaction --no-ansi --quiet --no-progress --prefer-dist && \
+    composer clear-cache --no-ansi --quiet && \
+    chmod -R go-w ~/.composer/vendor/
 USER root
 
 # Add the sample app
